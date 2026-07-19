@@ -256,6 +256,88 @@ export const botConfig = {
 
     // Channel ID where ticket logs are sent.
     logChannel: null,
+  }, 
+  // =========================
+  // REPORT SYSTEM
+  // =========================
+  reports: {
+    // Channel where reports are sent.
+    logChannel: null,
+
+    // Roles allowed to manage reports.
+    managerRoles: [],
+
+    // Default report status.
+    defaultStatus: "open",
+
+    // Allow staff to claim reports.
+    allowClaim: true,
+
+    // Auto-delete closed reports after X days (0 = disabled).
+    autoDeleteAfter: 0,
+
+    // Available report categories.
+    categories: {
+      cheat: {
+        label: "Cheating",
+        emoji: "🎯",
+        color: "#ED4245",
+      },
+      bug_abuse: {
+        label: "Bug Abuse",
+        emoji: "🐞",
+        color: "#FAA61A",
+      },
+      toxicity: {
+        label: "Toxic Behavior",
+        emoji: "💬",
+        color: "#FEE75C",
+      },
+      staff: {
+        label: "Staff Report",
+        emoji: "🛡️",
+        color: "#5865F2",
+      },
+      other: {
+        label: "Other",
+        emoji: "📄",
+        color: "#99AAB5",
+      },
+    },
+
+    // Available report statuses.
+    statuses: {
+      open: {
+        label: "Open",
+        emoji: "🟢",
+        color: "#57F287",
+      },
+      claimed: {
+        label: "Claimed",
+        emoji: "🟡",
+        color: "#FAA61A",
+      },
+      reviewing: {
+        label: "Under Review",
+        emoji: "🔵",
+        color: "#3498DB",
+      },
+      accepted: {
+        label: "Accepted",
+        emoji: "✅",
+        color: "#57F287",
+      },
+      denied: {
+        label: "Denied",
+        emoji: "❌",
+        color: "#ED4245",
+      },
+      closed: {
+        label: "Closed",
+        emoji: "🔒",
+        color: "#202225",
+      },
+    },
   },
 
   // =========================
