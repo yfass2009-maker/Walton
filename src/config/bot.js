@@ -536,6 +536,7 @@ export const botConfig = {
     moderation: true,
     logging: true,
     welcome: true,
+    reports: true,
 
     // Community engagement systems.
     tickets: true,
