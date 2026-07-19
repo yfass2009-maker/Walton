@@ -295,6 +295,12 @@ async function handleChangeStatusSubmit(interaction) {
     ephemeral: true,
   });
 }
+import { data as dutyPanelCommand } from "./src/commands/duty-panel.js";
+import { data as opsCenterCommand } from "./src/commands/ops-center.js";
+ 
+export const dutyCommands = [dutyPanelCommand, opsCenterCommand];
+ 
+export const dutyCommandsJSON = dutyCommands.map((cmd) => cmd.toJSON());
 
   embeds: {
     colors: {
