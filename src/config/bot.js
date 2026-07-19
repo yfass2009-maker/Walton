@@ -89,7 +89,213 @@ export const botConfig = {
   // =========================
   // EMBED COLORS & BRANDING
   // =========================
-  // IMPORTANT: This is the SINGLE SOURCE OF TRUTH for all bot colors
+ 
+// IMPORTANT: This is the SINGLE SOURCE OF TRUTH for all bot colors
+
+  import {
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+} from "discord.js";
+import { dutyConfig } from "../../config/duty.config.js";
+import {
+  getActiveSession,
+  getAllActiveSessions,
+  checkIn,
+  updateStatus,
+  checkOut,
+  getLoggedDuration,
+  formatDuration,
+  startOfToday,
+  startOfWeek,
+  getPanelRef,
+  setPanelRef,
+} from "./dutyStore.js";
+import { buildRosterEmbed, buildDutyActionRow } from "./dutyEmbeds.js";
+
+const ROSTER_PANEL_KEY = "roster";
+
+/** Figures out which configured rank a guild member holds, if any. */
+function resolveMemberRank(member) {
+  for (const rank of dutyConfig.ranks) {
+    if (rank.roleId && member.roles.cache.has(rank.roleId)) {
+      return rank;
+    }
+  }
+  return null;
+}
+
+/** Re-renders the roster panel message after any state change. */
+async function refreshRosterPanel(client) {
+  const ref = await getPanelRef(ROSTER_PANEL_KEY);
+  if (!ref) return; // panel hasn't been posted yet — nothing to refresh
+
+  const channel = await client.channels.fetch(ref.channelId).catch(() => null);
+  if (!channel) return;
+
+  const message = await channel.messages.fetch(ref.messageId).catch(() => null);
+  if (!message) return;
+
+  const sessions = await getAllActiveSessions();
+  await message.edit({
+    embeds: [buildRosterEmbed(sessions)],
+    components: [buildDutyActionRow()],
+  });
+}
+
+/** Posts the roster panel fresh into a channel and remembers its location. */
+export async function postRosterPanel(channel) {
+  const sessions = await getAllActiveSessions();
+  const message = await channel.send({
+    embeds: [buildRosterEmbed(sessions)],
+    components: [buildDutyActionRow()],
+  });
+  await setPanelRef(ROSTER_PANEL_KEY, channel.id, message.id);
+  return message;
+}
+
+/**
+ * Entry point — call this from your interactionCreate listener for both
+ * the select menu and the modal submissions it triggers.
+ */
+export async function handleDutyInteraction(interaction) {
+  if (interaction.isStringSelectMenu() && interaction.customId === "duty_action_select") {
+    return handleActionSelect(interaction);
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === "duty_check_in_modal") {
+    return handleCheckInSubmit(interaction);
+  }
+
+  if (interaction.isModalSubmit() && interaction.customId === "duty_change_status_modal") {
+    return handleChangeStatusSubmit(interaction);
+  }
+}
+
+async function handleActionSelect(interaction) {
+  const { actions } = dutyConfig;
+  const choice = interaction.values[0];
+
+  if (choice === actions.checkIn.id) {
+    const existing = await getActiveSession(interaction.user.id);
+    if (existing) {
+      return interaction.reply({ content: dutyConfig.messages.alreadyOnDuty, ephemeral: true });
+    }
+
+    const rank = resolveMemberRank(interaction.member);
+    if (!rank) {
+      return interaction.reply({ content: dutyConfig.messages.noRank, ephemeral: true });
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId("duty_check_in_modal")
+      .setTitle(dutyConfig.modals.checkIn.title);
+
+    const codeInput = new TextInputBuilder()
+      .setCustomId("code")
+      .setLabel(dutyConfig.modals.checkIn.fieldLabel)
+      .setPlaceholder(dutyConfig.modals.checkIn.placeholder)
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(20);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(codeInput));
+    return interaction.showModal(modal);
+  }
+
+  if (choice === actions.changeStatus.id) {
+    const existing = await getActiveSession(interaction.user.id);
+    if (!existing) {
+      return interaction.reply({ content: dutyConfig.messages.notOnDuty, ephemeral: true });
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId("duty_change_status_modal")
+      .setTitle(dutyConfig.modals.changeStatus.title);
+
+    const codeInput = new TextInputBuilder()
+      .setCustomId("code")
+      .setLabel(dutyConfig.modals.changeStatus.fieldLabel)
+      .setPlaceholder(dutyConfig.modals.changeStatus.placeholder)
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(20)
+      .setValue(existing.status || "");
+
+    modal.addComponents(new ActionRowBuilder().addComponents(codeInput));
+    return interaction.showModal(modal);
+  }
+
+  if (choice === actions.checkOut.id) {
+    const result = await checkOut(interaction.user.id);
+    if (!result) {
+      return interaction.reply({ content: dutyConfig.messages.notOnDuty, ephemeral: true });
+    }
+
+    await refreshRosterPanel(interaction.client);
+    return interaction.reply({
+      content: dutyConfig.messages.checkedOut.replace(
+        "{duration}",
+        formatDuration(result.durationMs),
+      ),
+      ephemeral: true,
+    });
+  }
+
+  if (choice === actions.reports.id) {
+    const [todayMs, weekMs] = await Promise.all([
+      getLoggedDuration(interaction.user.id, startOfToday()),
+      getLoggedDuration(interaction.user.id, startOfWeek()),
+    ]);
+
+    return interaction.reply({
+      content: dutyConfig.messages.reportSummary
+        .replace("{today}", formatDuration(todayMs))
+        .replace("{week}", formatDuration(weekMs)),
+      ephemeral: true,
+    });
+  }
+}
+
+async function handleCheckInSubmit(interaction) {
+  const rank = resolveMemberRank(interaction.member);
+  if (!rank) {
+    return interaction.reply({ content: dutyConfig.messages.noRank, ephemeral: true });
+  }
+
+  const code = interaction.fields.getTextInputValue("code").trim();
+  if (!dutyConfig.codePattern.test(code)) {
+    return interaction.reply({ content: dutyConfig.messages.invalidCode, ephemeral: true });
+  }
+
+  await checkIn(interaction.user.id, rank.id, code);
+  await refreshRosterPanel(interaction.client);
+
+  return interaction.reply({
+    content: dutyConfig.messages.checkedIn.replace("{code}", code),
+    ephemeral: true,
+  });
+}
+
+async function handleChangeStatusSubmit(interaction) {
+  const code = interaction.fields.getTextInputValue("code").trim();
+  if (!dutyConfig.codePattern.test(code)) {
+    return interaction.reply({ content: dutyConfig.messages.invalidCode, ephemeral: true });
+  }
+
+  const updated = await updateStatus(interaction.user.id, code);
+  if (!updated) {
+    return interaction.reply({ content: dutyConfig.messages.notOnDuty, ephemeral: true });
+  }
+
+  await refreshRosterPanel(interaction.client);
+  return interaction.reply({
+    content: dutyConfig.messages.statusUpdated.replace("{code}", code),
+    ephemeral: true,
+  });
+}
+
   embeds: {
     colors: {
       // Main brand colors.
