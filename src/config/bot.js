@@ -11,7 +11,7 @@ export const botConfig = {
   // - "invisible" = appears offline
   presence: {
     // Current online state shown on Discord.
-    status: "dnd",
+    status: "online",
 
     // Activity lines shown under the bot name.
     // `type` number mapping from Discord:
@@ -23,9 +23,9 @@ export const botConfig = {
     // 5 = Competing
     activities: [
       {
-        name: "MTA", // required by Discord API, not shown in the client
-        state: "صيانه",     // this is what people actually see
-        type: 5,               // Custom
+        name: "Custom Status", // required by Discord API, not shown in the client
+        state: "stalking",     // this is what people actually see
+        type: 4,               // Custom
       },
     ],
   },
@@ -256,88 +256,6 @@ export const botConfig = {
 
     // Channel ID where ticket logs are sent.
     logChannel: null,
-  }, 
-  // =========================
-  // REPORT SYSTEM
-  // =========================
-  reports: {
-    // Channel where reports are sent.
-    logChannel: null,
-
-    // Roles allowed to manage reports.
-    managerRoles: [],
-
-    // Default report status.
-    defaultStatus: "open",
-
-    // Allow staff to claim reports.
-    allowClaim: true,
-
-    // Auto-delete closed reports after X days (0 = disabled).
-    autoDeleteAfter: 0,
-
-    // Available report categories.
-    categories: {
-      cheat: {
-        label: "Cheating",
-        emoji: "🎯",
-        color: "#ED4245",
-      },
-      bug_abuse: {
-        label: "Bug Abuse",
-        emoji: "🐞",
-        color: "#FAA61A",
-      },
-      toxicity: {
-        label: "Toxic Behavior",
-        emoji: "💬",
-        color: "#FEE75C",
-      },
-      staff: {
-        label: "Staff Report",
-        emoji: "🛡️",
-        color: "#5865F2",
-      },
-      other: {
-        label: "Other",
-        emoji: "📄",
-        color: "#99AAB5",
-      },
-    },
-
-    // Available report statuses.
-    statuses: {
-      open: {
-        label: "Open",
-        emoji: "🟢",
-        color: "#57F287",
-      },
-      claimed: {
-        label: "Claimed",
-        emoji: "🟡",
-        color: "#FAA61A",
-      },
-      reviewing: {
-        label: "Under Review",
-        emoji: "🔵",
-        color: "#3498DB",
-      },
-      accepted: {
-        label: "Accepted",
-        emoji: "✅",
-        color: "#57F287",
-      },
-      denied: {
-        label: "Denied",
-        emoji: "❌",
-        color: "#ED4245",
-      },
-      closed: {
-        label: "Closed",
-        emoji: "🔒",
-        color: "#202225",
-      },
-    },
   },
 
   // =========================
@@ -536,7 +454,6 @@ export const botConfig = {
     moderation: true,
     logging: true,
     welcome: true,
-    reports: true,
 
     // Community engagement systems.
     tickets: true,
@@ -732,4 +649,3 @@ export function getRandomColor() {
 }
 
 export default botConfig;
-
